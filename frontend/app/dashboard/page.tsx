@@ -1,3 +1,3 @@
 export default function DashboardPage() {
-	return null
+	return <div>Dashboard coming in Phase 5</div>
 }
