@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -48,6 +49,8 @@ async def lifespan(app: FastAPI):
 	app.state.fuzzy_engine = fuzzy_engine
 	app.state.bayesian_network = bayesian_network
 	app.state.evaluator = evaluator
+
+	threading.Thread(target=evaluator.get_results, daemon=True).start()
 
 	yield
 

@@ -37,10 +37,13 @@ def compute_evidence(
 	disease: str,
 	severity_dict: dict[str, int],
 	symptom_cpt: dict[str, dict[str, float]],
+	binary_mode: bool = False,
 ) -> float:
 	weight = severity_dict.get(symptom, 3)
 	ic = input_centroid(weight)
 	probability = symptom_cpt.get(disease, {}).get(symptom, 1 / 98)
+	if binary_mode:
+		return 1.0 if rule_strength(probability) > 0 else 0.0
 	return ic * probability
 
 
@@ -109,12 +112,14 @@ class FuzzyEngine:
 		symptom: str,
 		disease: str,
 		symptom_cpt: dict[str, dict[str, float]],
+		binary_mode: bool = False,
 	) -> float:
 		return compute_evidence(
 			symptom=symptom,
 			disease=disease,
 			severity_dict=self.data_loader.severity_dict,
 			symptom_cpt=symptom_cpt,
+			binary_mode=binary_mode,
 		)
 
 	def compute_cluster_scores(

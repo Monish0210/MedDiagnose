@@ -50,7 +50,11 @@ class BayesianNetwork:
 				count = int(rows_symptoms.isin(symptom_set).any(axis=1).sum())
 				self.cluster_cpt[disease][cluster_name] = count / n
 
-	def infer(self, selected_symptoms: list[str]) -> list[dict[str, Any]]:
+	def infer(
+		self,
+		selected_symptoms: list[str],
+		binary_mode: bool = False,
+	) -> list[dict[str, Any]]:
 		EPSILON = 1e-3
 
 		cluster_scores = self.fuzzy_engine.compute_cluster_scores(
@@ -67,6 +71,7 @@ class BayesianNetwork:
 					symptom,
 					disease,
 					self.symptom_cpt,
+					binary_mode=binary_mode,
 				)
 				log_ll += math.log(ev + EPSILON)
 			log_likelihoods[disease] = log_ll

@@ -313,6 +313,22 @@ Three core models are used.
 - Diagnosis history per user
 - Accuracy metrics dashboard: Top-1%, Top-5%, F1 score, Fuzzy vs Binary comparison, confusion matrix
 
+### Reproducibility Note (Metrics)
+
+On this dataset and current deterministic split (first 96 rows per disease for training, last 24 for testing), it is possible to observe very high Top-5 accuracy (including 100%).
+
+This is academically reasonable here because:
+
+- The dataset is balanced (41 diseases, equal samples per class).
+- The feature space (symptom combinations) is strongly structured and partially overlapping across related diseases.
+- Top-5 is a lenient ranking metric compared with Top-1.
+
+Interpretation guidance:
+
+- Treat Top-1 and Macro-F1 as the primary quality indicators.
+- Treat Top-5 as recall-style decision-support coverage, not proof of clinical correctness.
+- Results are reproducible for the same data files and split, but they are not a claim of real-world generalization.
+
 ## Dataset
 
 Place these files inside `backend/data/`.
