@@ -117,13 +117,25 @@ class FuzzyEngine:
 			symptom_cpt=symptom_cpt,
 		)
 
-	def compute_cluster_scores(self, selected_symptoms: list[str]) -> dict[str, float]:
+	def compute_cluster_scores(
+		self,
+		selected_symptoms: list[str],
+		severity_dict: dict[str, int] | None = None,
+		cluster_map: dict[str, list[str]] | None = None,
+	) -> dict[str, float]:
 		return compute_cluster_scores(
 			selected_symptoms=selected_symptoms,
-			severity_dict=self.data_loader.severity_dict,
-			cluster_map=self.data_loader.cluster_map,
+			severity_dict=severity_dict if severity_dict is not None else self.data_loader.severity_dict,
+			cluster_map=cluster_map if cluster_map is not None else self.data_loader.cluster_map,
 		)
 
-	def fuzzify_detail(self, symptom: str) -> dict[str, Any]:
-		return fuzzify_detail(symptom=symptom, severity_dict=self.data_loader.severity_dict)
+	def fuzzify_detail(
+		self,
+		symptom: str,
+		severity_dict: dict[str, int] | None = None,
+	) -> dict[str, Any]:
+		return fuzzify_detail(
+			symptom=symptom,
+			severity_dict=severity_dict if severity_dict is not None else self.data_loader.severity_dict,
+		)
 

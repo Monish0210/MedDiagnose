@@ -26,7 +26,18 @@ async def lifespan(app: FastAPI):
 
 	data_loader = DataLoader(data_dir=str(data_dir))
 	fuzzy_engine = FuzzyEngine(data_loader=data_loader)
-	bayesian_network = BayesianNetwork(data_loader=data_loader)
+	bayesian_network = BayesianNetwork(
+		data_loader=data_loader,
+		fuzzy_engine=fuzzy_engine,
+	)
+
+	training_df = (
+		data_loader.raw_dataframe.groupby("Disease", as_index=False, group_keys=False)
+		.head(96)
+		.reset_index(drop=True)
+	)
+	bayesian_network.build_cpt(training_df=training_df)
+	print(f"[Startup] Training rows used for CPT: {len(training_df)}")
 	evaluator = Evaluator(
 		data_loader=data_loader,
 		fuzzy_engine=fuzzy_engine,
@@ -55,6 +66,11 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
 	return {"status": "ok"}
+
+
+@app.get("/api/symptoms")
+def list_symptoms_flat() -> list[str]:
+	return app.state.data_loader.all_symptoms
 
 
 app.include_router(diagnosis.router, prefix="/api")
