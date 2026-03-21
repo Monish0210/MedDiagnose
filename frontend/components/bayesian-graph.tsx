@@ -1,14 +1,14 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { useTheme } from "next-themes"
 import {
 	Background,
 	Controls,
 	Edge,
 	MarkerType,
-	MiniMap,
 	Node,
+	Position,
 	ReactFlow,
 } from "@xyflow/react"
 
@@ -37,7 +37,41 @@ const formatLabel = (value: string, max = 26) => {
 
 export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightClass = "h-112.5" }: BayesianGraphProps) {
 	const { resolvedTheme } = useTheme()
-	const isDark = resolvedTheme === "dark"
+	const mounted = useSyncExternalStore(
+		() => () => undefined,
+		() => true,
+		() => false
+	)
+	const isDark = mounted && resolvedTheme === "dark"
+
+	const graphSummary = useMemo(() => {
+		if (!graphData) {
+			return null
+		}
+
+		const diseaseNode = graphData.nodes.find((node) => node.type === "disease")
+		const activeClusters = graphData.nodes
+			.filter((node) => node.type === "cluster" && Number(node.score ?? 0) > 0)
+			.sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0))
+			.slice(0, 2)
+			.map((node) => formatLabel(node.label, 24))
+
+		const strongestEdge = graphData.edges
+			.filter((edge) => edge.type === "cluster_to_disease")
+			.sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0))[0]
+
+		const strongestSymptom = [...fuzzyDetails].sort(
+			(a, b) => b.input_centroid - a.input_centroid
+		)[0]
+
+		return {
+			disease: diseaseNode ? formatLabel(diseaseNode.label, 32) : "Unknown",
+			activeClusters,
+			strongestEdge,
+			symptomCount: graphData.nodes.filter((node) => node.type === "symptom").length,
+			strongestSymptom,
+		}
+	}, [graphData, fuzzyDetails])
 
 	const icBySymptom = useMemo(() => {
 		return Object.fromEntries(
@@ -91,6 +125,7 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 			},
 			draggable: false,
 			selectable: false,
+			targetPosition: Position.Bottom,
 		}))
 
 		const clusterSpacing = clusterNodes.length > 1 ? (width - 180) / (clusterNodes.length - 1) : 0
@@ -115,6 +150,8 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 				},
 				draggable: false,
 				selectable: false,
+				sourcePosition: Position.Top,
+				targetPosition: Position.Bottom,
 			}
 		})
 
@@ -163,6 +200,7 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 					},
 					draggable: false,
 					selectable: false,
+					sourcePosition: Position.Top,
 				}
 			})
 		})
@@ -175,33 +213,76 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 			return []
 		}
 
+		const MIN_CLUSTER_EDGE_WEIGHT = 0.05
+		const strongestClusterEdgeIds = new Set(
+			graphData.edges
+				.filter((edge) => edge.type === "cluster_to_disease")
+				.filter((edge) => Number(clusterScoreById[edge.source] ?? 0) > 0)
+				.sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0))
+				.slice(0, 2)
+				.map((edge) => `${edge.source}->${edge.target}`)
+		)
+
 		return graphData.edges.map((edge, index) => {
 			const weight = Number.isFinite(edge.weight) ? edge.weight : 0
 			const isClusterToDisease =
 				graphData.nodes.some((n) => n.id === edge.source && n.type === "cluster") &&
 				graphData.nodes.some((n) => n.id === edge.target && n.type === "disease")
-			const strokeWidth = isClusterToDisease ? Math.max(1, weight * 6) : 1
-			const stroke = isClusterToDisease ? "#0f766e" : isDark ? "#64748b" : "#94a3b8"
+			const sourceClusterScore = Number(clusterScoreById[edge.source] ?? 0)
+			const sourceClusterActive = sourceClusterScore > 0
+
+			if (isClusterToDisease && weight < MIN_CLUSTER_EDGE_WEIGHT) {
+				return null
+			}
+
+			// Keep only active cluster-to-disease links to avoid arc clutter.
+			if (isClusterToDisease && !sourceClusterActive) {
+				return null
+			}
+
+			const strokeWidth = isClusterToDisease ? Math.max(1.25, weight * 5.5) : 1
+			const stroke = isClusterToDisease
+				? sourceClusterActive
+					? "#0f766e"
+					: "#0f766e"
+				: isDark
+					? "#64748b"
+					: "#94a3b8"
+			const showEdgeLabel =
+				isClusterToDisease &&
+				sourceClusterActive &&
+				strongestClusterEdgeIds.has(`${edge.source}->${edge.target}`)
 
 			return {
 				id: `${edge.source}-${edge.target}-${index}`,
 				source: edge.source,
 				target: edge.target,
-				type: "smoothstep",
-				animated: isClusterToDisease && weight > 0.25,
-				label: isClusterToDisease ? weight.toFixed(2) : undefined,
-				style: { stroke, strokeWidth },
-				labelStyle: { fontSize: 10, fill: isDark ? "#e2e8f0" : "#334155" },
-				labelBgStyle: { fill: isDark ? "#0f172a" : "#ffffff", fillOpacity: 0.88 },
-				labelBgPadding: [4, 2],
+				type: isClusterToDisease ? "bezier" : "smoothstep",
+				animated: false,
+				label: showEdgeLabel ? weight.toFixed(2) : undefined,
+				style: {
+					stroke,
+					strokeWidth,
+					opacity: isClusterToDisease ? 0.95 : 0.65,
+				},
+				labelStyle: {
+					fontSize: 12,
+					fontWeight: 700,
+					fill: isDark ? "#f8fafc" : "#0f172a",
+				},
+				labelBgStyle: {
+					fill: isDark ? "#0f172a" : "#ffffff",
+					fillOpacity: 0.98,
+				},
+				labelBgPadding: [7, 4],
 				labelBgBorderRadius: 4,
 				markerEnd: {
 					type: MarkerType.ArrowClosed,
 					color: stroke,
 				},
 			}
-		})
-	}, [graphData, isDark])
+		}).filter((edge): edge is Edge => edge !== null)
+	}, [graphData, isDark, clusterScoreById])
 
 	return (
 		<Card>
@@ -214,9 +295,26 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 				) : (
 					<>
 						<div className="rounded-md border p-3 text-sm">
-							<p className="font-medium">How to read this graph</p>
-							<p className="mt-1 text-xs text-muted-foreground">Top node is the predicted disease. Middle nodes are symptom clusters. Bottom nodes are your selected symptoms.</p>
-							<p className="mt-1 text-xs text-muted-foreground">Thicker cluster-to-disease edges indicate stronger learned relationship $P(cluster|disease)$.</p>
+							<p className="font-medium">How to read this graph (for current result)</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								Predicted disease node: {graphSummary?.disease ?? "-"}
+								{topProbability !== undefined ? ` (${topProbability.toFixed(2)}%)` : ""}.
+							</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								This graph includes {graphSummary?.symptomCount ?? 0} selected symptom node(s).
+								{graphSummary?.strongestSymptom
+									? ` Highest-severity evidence symptom is ${formatLabel(graphSummary.strongestSymptom.symptom, 26)} (IC ${graphSummary.strongestSymptom.input_centroid.toFixed(3)}).`
+									: ""}
+							</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								Top active cluster(s): {graphSummary?.activeClusters?.length ? graphSummary.activeClusters.join(", ") : "none"}.
+								{graphSummary?.strongestEdge
+									? ` Strongest cluster->disease edge is ${formatLabel(graphSummary.strongestEdge.source, 24)} -> ${graphSummary.disease} (weight ${Number(graphSummary.strongestEdge.weight).toFixed(2)}).`
+									: ""}
+							</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								Cluster box color = activated by selected symptoms. Only active clusters are connected to the disease node. Edge thickness = learned relationship P(cluster|disease).
+							</p>
 						</div>
 						<div className="flex flex-wrap gap-2">
 							<Badge variant="outline">Nodes: {graphData.nodes.length}</Badge>
@@ -228,10 +326,10 @@ export function BayesianGraph({ graphData, fuzzyDetails, topProbability, heightC
 								edges={flowEdges}
 								fitView
 								fitViewOptions={{ padding: 0.28 }}
+								defaultEdgeOptions={{ type: "smoothstep" }}
 								proOptions={{ hideAttribution: true }}
 							>
 								<Background gap={20} color={isDark ? "#334155" : "#e2e8f0"} />
-								<MiniMap pannable zoomable />
 								<Controls />
 							</ReactFlow>
 						</div>

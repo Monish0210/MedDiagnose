@@ -42,7 +42,7 @@ export default async function DashboardMetricsPage() {
 	const payload = latest.fullResults as unknown as DiagnosisResponse
 
 	return (
-		<div className="p-4 md:p-6">
+		<div className="space-y-4 p-4 md:p-6">
 			<BayesianGraph
 				graphData={payload.graph_data}
 				fuzzyDetails={payload.fuzzy_details}

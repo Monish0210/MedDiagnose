@@ -48,6 +48,9 @@ export function FuzzyPanel({ fuzzyDetails, clusterScores }: FuzzyPanelProps) {
 		return null
 	}
 
+	const activeRuleRows = fuzzyDetails.filter((detail) => detail.p_laplace >= 0.1)
+	const hiddenRuleRows = fuzzyDetails.length - activeRuleRows.length
+
 	const chartData = Object.entries(clusterScores)
 		.map(([cluster, score]) => ({
 			cluster,
@@ -164,7 +167,7 @@ export function FuzzyPanel({ fuzzyDetails, clusterScores }: FuzzyPanelProps) {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{fuzzyDetails.map((detail) => (
+							{activeRuleRows.map((detail) => (
 								<TableRow key={`${detail.symptom}-evidence`}>
 									<TableCell>{detail.symptom}</TableCell>
 									<TableCell>{detail.p_laplace.toFixed(6)}</TableCell>
@@ -174,6 +177,11 @@ export function FuzzyPanel({ fuzzyDetails, clusterScores }: FuzzyPanelProps) {
 							))}
 						</TableBody>
 					</Table>
+					{hiddenRuleRows > 0 ? (
+						<p className="text-xs text-muted-foreground">
+							{hiddenRuleRows} low-probability rule row(s) hidden (P &lt; 0.1)
+						</p>
+					) : null}
 					<p className="text-xs text-muted-foreground">
 						P values use Laplace smoothing - minimum approx 0.010
 					</p>

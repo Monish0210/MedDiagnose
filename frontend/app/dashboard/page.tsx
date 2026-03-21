@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { SymptomSelector } from "@/components/symptom-selector"
 import { FuzzyPanel } from "@/components/fuzzy-panel"
 import { ResultsPanel } from "@/components/results-panel"
-import { BayesianGraph } from "@/components/bayesian-graph"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -89,17 +88,15 @@ export default function DashboardPage() {
 					{isLoading ? (
 						<div className="space-y-4">
 							<Skeleton className="h-52 w-full" />
-							<Skeleton className="h-112.5 w-full" />
 						</div>
 					) : diagnosisResult ? (
 						<>
 							<ResultsPanel results={diagnosisResult.top5} />
-							<BayesianGraph
-								graphData={diagnosisResult.graph_data}
-								fuzzyDetails={diagnosisResult.fuzzy_details}
-								topProbability={diagnosisResult.top5[0]?.probability}
-								heightClass="h-140"
-							/>
+							<Card>
+								<CardContent className="py-4 text-sm text-muted-foreground">
+									Detailed Bayesian graph has been moved to the Graph tab for a cleaner diagnosis view.
+								</CardContent>
+							</Card>
 						</>
 					) : (
 						<Card>
