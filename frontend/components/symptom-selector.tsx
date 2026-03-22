@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Search, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -20,9 +20,12 @@ import { cn } from "@/lib/utils"
 type SymptomSelectorProps = {
 	selectedSymptoms: string[]
 	onChange: (s: string[]) => void
+	onRunAnalysis?: () => void
+	isRunning?: boolean
+	runDisabled?: boolean
 }
 
-export function SymptomSelector({ selectedSymptoms, onChange }: SymptomSelectorProps) {
+export function SymptomSelector({ selectedSymptoms, onChange, onRunAnalysis, isRunning = false, runDisabled = false }: SymptomSelectorProps) {
 	const [allSymptoms, setAllSymptoms] = useState<string[]>([])
 	const [open, setOpen] = useState(false)
 	const [loading, setLoading] = useState(false)
@@ -72,28 +75,33 @@ export function SymptomSelector({ selectedSymptoms, onChange }: SymptomSelectorP
 	}
 
 	return (
-		<Card className="rounded-xl border border-zinc-200 bg-white p-4 shadow-none">
+		<Card className="rounded-xl border border-zinc-200 border-t-2 border-t-indigo-500 bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
 			<CardHeader className="mb-3 flex-row items-center justify-between space-y-0 p-0">
-				<CardTitle className="text-sm font-semibold text-zinc-900">Symptoms</CardTitle>
+				<div className="flex items-center gap-2">
+					<span className="h-2 w-2 rounded-full bg-indigo-500" />
+					<CardTitle className="text-base font-semibold text-zinc-900">Symptoms</CardTitle>
+				</div>
 				{selectedSymptoms.length > 0 ? (
-					<span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{selectedSymptoms.length} selected</span>
+					<span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-sm font-medium text-indigo-600">{selectedSymptoms.length} selected</span>
 				) : null}
 			</CardHeader>
 			<CardContent className="space-y-3 p-0">
-
 				<Popover open={open} onOpenChange={setOpen}>
 					<PopoverTrigger
 						className={cn(
 							buttonVariants({ variant: "outline" }),
-							"h-9 w-full justify-between rounded-md border-zinc-200 bg-white text-sm text-zinc-600 hover:border-zinc-300 hover:bg-white"
+							"h-10 w-full justify-between rounded-lg border-zinc-200 bg-white text-sm text-zinc-400 hover:border-zinc-300 hover:bg-white"
 						)}
 					>
-						<span>{loading ? "Loading symptoms..." : "Search and select symptoms"}</span>
+						<span className="flex items-center gap-2">
+							<Search className="h-4 w-4 text-zinc-400" />
+							<span>{loading ? "Loading symptoms..." : "Search symptoms..."}</span>
+						</span>
 						<ChevronsUpDown className="opacity-60" />
 					</PopoverTrigger>
 					<PopoverContent className="w-(--anchor-width) p-0">
 						<Command>
-							<CommandInput placeholder="Search symptom..." />
+							<CommandInput placeholder="Search symptoms..." />
 							<CommandList>
 								<CommandEmpty>No symptom found.</CommandEmpty>
 								<CommandGroup heading="Symptoms">
@@ -117,9 +125,9 @@ export function SymptomSelector({ selectedSymptoms, onChange }: SymptomSelectorP
 					</PopoverContent>
 				</Popover>
 
-				<div className="mt-2 flex flex-wrap gap-1.5">
+				<div className="mt-3 flex flex-wrap gap-1.5">
 					{selectedSymptoms.map((symptom) => (
-						<Badge key={symptom} variant="outline" className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-1 text-xs text-zinc-800">
+						<Badge key={symptom} variant="outline" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
 							<span>{symptom}</span>
 							<Button
 								variant="ghost"
@@ -132,6 +140,20 @@ export function SymptomSelector({ selectedSymptoms, onChange }: SymptomSelectorP
 						</Badge>
 					))}
 				</div>
+
+				{onRunAnalysis ? (
+					<Button
+						className={cn(
+							"mt-4 h-10 w-full rounded-lg bg-linear-to-r from-zinc-900 to-zinc-800 text-sm font-medium text-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-all duration-200 hover:from-zinc-800 hover:to-zinc-700",
+							isRunning && "animate-pulse opacity-80"
+						)}
+						onClick={onRunAnalysis}
+						disabled={runDisabled}
+					>
+						{isRunning ? <Loader2 className="animate-spin" /> : null}
+						{isRunning ? "Analysing..." : "Run Analysis"}
+					</Button>
+				) : null}
 			</CardContent>
 		</Card>
 	)

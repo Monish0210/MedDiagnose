@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function DashboardHistoryLoading() {
 	return (
 		<div className="min-h-screen bg-zinc-50 dark:bg-(--bg-page)">
-			<div className="mx-auto w-full max-w-6xl px-6 py-8">
+			<div className="w-full px-6 py-8">
 				<Skeleton className="h-8 w-28" />
 				<Skeleton className="mt-2 h-4 w-44" />
 				<div className="mt-6 space-y-2">

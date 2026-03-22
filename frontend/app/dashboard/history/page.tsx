@@ -34,7 +34,7 @@ export default async function DashboardHistoryPage() {
 
 	return (
 		<div className="min-h-screen bg-zinc-50 dark:bg-(--bg-page)">
-			<div className="mx-auto w-full max-w-6xl px-6 py-8">
+			<div className="w-full px-6 py-8">
 				<h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-(--text-1)">History</h1>
 				<p className="mb-6 mt-1 text-sm text-zinc-500 dark:text-(--text-2)">Your previous diagnoses</p>
 				<HistoryList diagnoses={historyItems} />

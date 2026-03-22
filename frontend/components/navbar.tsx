@@ -35,7 +35,7 @@ export function Navbar({ userEmail }: { userEmail: string }) {
 
 	return (
 		<header className="sticky top-0 z-50 h-14 border-b border-zinc-200 bg-white">
-			<div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between gap-6 px-6">
+			<div className="flex h-full w-full items-center justify-between gap-6 px-6">
 				<div className="flex items-center gap-8">
 					<p className="text-sm font-semibold text-zinc-900">MedDiagnose</p>
 					<nav className="hidden items-center gap-1 md:flex">
