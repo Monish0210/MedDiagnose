@@ -1,362 +1,376 @@
-# Fuzzy-Bayesian Medical Diagnosis System
+# MedDiagnose
 
-Probabilistic Graphical Models integrating Fuzzy Set Theory with Bayesian Inference to handle epistemic uncertainty and vagueness in medical expert systems.
+A full-stack medical decision-support web application that combines fuzzy logic with Bayesian inference to rank likely diseases from user-selected symptoms.
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+MedDiagnose is built as an academic soft computing project. It is designed for explainability and learning, not for clinical use.
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688?logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)
-![Bun](https://img.shields.io/badge/Bun-Package_Manager-F9F1E1?logo=bun&logoColor=black)
-![License](https://img.shields.io/badge/License-Academic-blue)
 
-## Table of Contents
+## Contents
 
-- [About the Project](#about-the-project)
-- [The 5-Step Pipeline](#the-5-step-pipeline)
+- [What MedDiagnose Does](#what-meddiagnose-does)
+- [Core Features](#core-features)
+- [System Architecture](#system-architecture)
+- [Fuzzy-Bayesian Pipeline](#fuzzy-bayesian-pipeline)
 - [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
+- [Repository Structure](#repository-structure)
 - [Prerequisites](#prerequisites)
-- [Setup and Installation](#setup-and-installation)
-- [Environment Variables](#environment-variables)
-- [Running the Project](#running-the-project)
-- [API Endpoints](#api-endpoints)
-- [Features](#features)
-- [Dataset](#dataset)
-- [Academic Note](#academic-note)
+- [Environment Configuration](#environment-configuration)
+- [Local Setup](#local-setup)
+- [How to Run](#how-to-run)
+- [API Overview](#api-overview)
+- [Data Files](#data-files)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap Ideas](#roadmap-ideas)
+- [Academic Context](#academic-context)
 - [Disclaimer](#disclaimer)
 
-## About the Project
+## What MedDiagnose Does
 
-This is a full-stack Soft Computing assignment project where users select symptoms from a list of 131 symptoms and receive a ranked probability list over 41 diseases.
+Given a list of symptoms, MedDiagnose:
 
-The system executes a 5-step fuzzy-bayesian inference pipeline and returns:
+1. Converts symptom severity into fuzzy memberships (LOW, MEDIUM, HIGH).
+2. Computes per-symptom evidence scores.
+3. Runs Bayesian inference over disease candidates.
+4. Returns ranked disease probabilities (including top 5 and full ranking).
+5. Displays interpretable evidence, cluster activations, and disease details.
 
-- Probabilistic disease ranking
-- Disease descriptions
-- Recommended precautions
-- Fuzzy and Bayesian interpretability panels
+The current dataset and pipeline are configured around:
 
-The goal is decision support under uncertainty, not clinical replacement.
+- 131 symptoms
+- 41 diseases
+- 4,920 records
 
-## The 5-Step Pipeline
+## Core Features
 
-### Numbered Flow
+- Authenticated user flow (sign up, sign in, session-based access).
+- Symptom selection and diagnosis run from dashboard UI.
+- Top-ranked disease results with probability breakdown.
+- Fuzzy analysis panel with membership values and evidence metrics.
+- Cluster activation panel for syndrome-level grouping.
+- Detailed disease information and precautions.
+- Diagnosis history per user, persisted in PostgreSQL via Prisma.
+- Metrics endpoint support from backend evaluator.
 
-1. **Fuzzification**: Converts symptom severity weight (1-7) into LOW/MEDIUM/HIGH membership degrees using triangular membership functions with Partition of Unity.
-2. **Weighted Severity Score**: Collapses memberships into one soft score (0.2-0.9) using weighted mapping.
-3. **Conditional Probability**: Uses Laplace-smoothed probability from training data:
-   
-   $$P(S|D)=\frac{count+1}{98}$$
-   
-   with continuous rule strength:
-   
-   $$rule\_strength(p)=p$$
-4. **Evidence Score**: Integrates fuzzy and Bayesian terms:
-   
-   $$evidence(S,D)=input\_centroid(S)\times P_{laplace}(S|D)$$
-5. **Bayesian Log-Sum**: Aggregates multi-symptom evidence per disease:
-   
-   $$log\_ll(D)=\sum\log(evidence(S,D)+\epsilon)$$
-   
-   then normalizes with max-subtraction + exp for numerical stability.
+## System Architecture
 
-### Pipeline Diagram
+### Frontend
+
+- Next.js App Router (TypeScript)
+- UI built with Tailwind CSS and shadcn components
+- API route handlers under frontend/app/api act as a backend gateway
+- Better Auth for user session handling
+
+### Backend
+
+- FastAPI service exposing symptoms, diagnosis, and metrics routes
+- Data loader for dataset, severity map, descriptions, and precautions
+- Fuzzy engine + Bayesian network + evaluator services
+- Cluster configuration generated from dataset
+
+### Database
+
+- PostgreSQL (Neon supported)
+- Prisma ORM for user, session, account, and diagnosis persistence
+
+## Fuzzy-Bayesian Pipeline
+
+MedDiagnose uses a five-step inference flow:
+
+1. Fuzzification
+   - Maps symptom severity weights to LOW/MEDIUM/HIGH membership values.
+2. Input centroid / severity weighting
+   - Produces a continuous input score from fuzzy memberships.
+3. Conditional probability estimation
+   - Uses Laplace-smoothed estimates from training data.
+4. Evidence scoring
+   - Combines fuzzy score and conditional probability.
+5. Bayesian aggregation and normalization
+   - Uses log-space accumulation for numerical stability and normalizes to final probabilities.
+
+High-level flow:
 
 ```text
 Selected Symptoms
-  |
-  v
-[Step 1] Fuzzification (LOW/MEDIUM/HIGH)
-  |
-  v
-[Step 2] Input Centroid (0.2-0.9)
-  |
-  v
-[Step 3] Laplace P(S|D)
-  |
-  v
-[Step 4] Evidence(S,D) = centroid * P(S|D)
-  |
-  v
-[Step 5] Log-Sum Bayesian Inference + Normalization
-  |
-  v
-Ranked Diseases (Top 5 + Full 41)
+  -> Fuzzy Memberships (L/M/H)
+  -> Weighted Input / Centroid
+  -> P(S|D) with smoothing
+  -> Evidence per symptom-disease pair
+  -> Bayesian log aggregation
+  -> Normalized disease probabilities
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 App Router + TypeScript |
-| UI | shadcn/ui + Tailwind CSS |
-| Charts | Recharts |
-| Graph Visualization | @xyflow/react (React Flow) |
-| Package Manager | Bun |
-| Backend | Python FastAPI (port 8000) |
-| Fuzzy + Bayesian Logic | Pure Python only |
-| Database | PostgreSQL (Neon Cloud) |
+| Frontend | Next.js 16, React 19, TypeScript |
+| Styling | Tailwind CSS v4, shadcn/ui |
+| Auth | Better Auth |
+| Backend | FastAPI, Uvicorn |
+| Data/ML | pandas, numpy, scikit-learn |
+| Database | PostgreSQL |
 | ORM | Prisma |
-| Authentication | Better Auth (email + password) |
 
-## Project Structure
+## Repository Structure
 
 ```text
 SC-Innovative/
 ├── frontend/
-│   ├── app/(auth)/login/page.tsx
-│   ├── app/(auth)/signup/page.tsx
-│   ├── app/api/auth/[...all]/route.ts
-│   ├── app/api/diagnose/route.ts
-│   ├── app/dashboard/page.tsx
-│   ├── app/dashboard/history/page.tsx
-│   ├── app/dashboard/metrics/page.tsx
-│   ├── components/symptom-selector.tsx
-│   ├── components/fuzzy-panel.tsx
-│   ├── components/bayesian-graph.tsx
-│   ├── components/results-panel.tsx
-│   ├── components/disease-detail.tsx
-│   ├── components/metrics-dashboard.tsx
-│   ├── lib/auth.ts
-│   ├── lib/auth-client.ts
-│   ├── lib/prisma.ts
-│   ├── prisma/schema.prisma
-│   ├── .env
-│   └── .env.local
-└── backend/
-    ├── main.py
-    ├── generate_clusters.py
-    ├── routers/diagnosis.py
-    ├── routers/metrics.py
-    ├── services/data_loader.py
-    ├── services/fuzzy_engine.py
-    ├── services/bayesian_network.py
-    ├── services/evaluator.py
-    ├── data/
-    └── requirements.txt
+│   ├── app/
+│   │   ├── (auth)/
+│   │   ├── api/
+│   │   ├── dashboard/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   ├── lib/
+│   ├── prisma/
+│   └── package.json
+├── backend/
+│   ├── routers/
+│   ├── services/
+│   ├── data/
+│   ├── main.py
+│   ├── generate_clusters.py
+│   └── requirements.txt
+└── README.md
 ```
 
 ## Prerequisites
 
-Install the following before setup:
+Install these first:
 
-- Node.js v20+
-- Bun
+- Node.js 20+
 - Python 3.10+
+- PostgreSQL connection (Neon works well)
 - Git
-- A free Neon account at neon.tech
-- GitHub Copilot in VS Code
 
-Exact Bun install command:
+Package manager:
 
-```bash
-curl -fsSL https://bun.sh/install | bash
+- npm is fully supported
+- Bun is also supported if preferred
+
+## Environment Configuration
+
+Create the following files before running the app.
+
+### frontend/.env
+
+Used by Prisma CLI:
+
+```env
+DATABASE_URL="postgresql://username:password@host/dbname?sslmode=require"
 ```
 
-## Setup and Installation
+### frontend/.env.local
 
-Follow this order exactly.
+Used by Next.js runtime and auth:
 
-1. **Clone the repository**
+```env
+DATABASE_URL="postgresql://username:password@host/dbname?sslmode=require"
+BETTER_AUTH_SECRET="replace-with-a-strong-random-secret"
+BETTER_AUTH_URL="http://localhost:3000"
+```
+
+### backend/.env
+
+```env
+FRONTEND_URL="http://localhost:3000"
+```
+
+## Local Setup
+
+1. Clone repository
 
 ```bash
 git clone <your-repo-url>
 cd SC-Innovative
 ```
 
-2. **Install Node.js, Bun, and Python**
+2. Install frontend dependencies
 
-- Ensure Node.js v20+ and Python 3.10+ are available in PATH.
-- Install Bun with:
+Using npm:
 
 ```bash
-curl -fsSL https://bun.sh/install | bash
+cd frontend
+npm install
 ```
 
-3. **Create Neon database**
-
-- Create a Neon project and a database named `medical_diagnosis`.
-- Copy the PostgreSQL connection string.
-
-4. **Create the three environment files**
-
-- `frontend/.env`
-- `frontend/.env.local`
-- `backend/.env`
-
-Use the exact keys shown in [Environment Variables](#environment-variables).
-
-5. **Install frontend dependencies**
+Using Bun:
 
 ```bash
 cd frontend
 bun install
 ```
 
-6. **Run Prisma migration**
+3. Initialize Prisma
+
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+```
+
+If using Bun:
 
 ```bash
 bunx prisma migrate dev --name init
 bunx prisma generate
 ```
 
-7. **Install Python dependencies**
+4. Set up backend virtual environment
 
 ```bash
 cd ../backend
 python -m venv .venv
 ```
 
-PowerShell activation:
+PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install requirements:
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+5. Install backend dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-8. **Copy dataset files to backend/data/**
+6. Place required dataset files in backend/data
 
-Place all required CSV files listed in the [Dataset](#dataset) section.
+See [Data Files](#data-files).
 
-9. **Run cluster generation script**
+7. Generate cluster config
 
 ```bash
 python generate_clusters.py
 ```
 
-This generates `cluster_config.json` used by backend clustering logic.
+## How to Run
 
-10. **Start both servers**
+Use two terminals.
 
-See [Running the Project](#running-the-project).
-
-## Environment Variables
-
-Do not commit these files.
-
-### frontend/.env (Prisma CLI reads this)
-
-```env
-DATABASE_URL="postgresql://username:password@ep-xxxx.us-east-1.aws.neon.tech/medical_diagnosis?sslmode=require"
-```
-
-### frontend/.env.local (Next.js runtime reads this)
-
-```env
-DATABASE_URL="postgresql://username:password@ep-xxxx.us-east-1.aws.neon.tech/medical_diagnosis?sslmode=require"
-BETTER_AUTH_SECRET="any-random-string-minimum-32-characters"
-BETTER_AUTH_URL="http://localhost:3000"
-```
-
-### backend/.env (FastAPI reads this)
-
-```env
-FRONTEND_URL="http://localhost:3000"
-```
-
-## Running the Project
-
-Use two terminals in every session.
-
-### Terminal 1: Backend
+### Terminal A (Backend)
 
 ```bash
 cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-### Terminal 2: Frontend
+### Terminal B (Frontend)
+
+```bash
+cd frontend
+npm run dev
+```
+
+If using Bun:
 
 ```bash
 cd frontend
 bun dev
 ```
 
-### Local URLs
+### Default local URLs
 
 - Frontend: http://localhost:3000
-- Backend API docs: http://localhost:8000/docs
+- FastAPI docs: http://localhost:8000/docs
+- FastAPI health: http://localhost:8000/health
 
-## API Endpoints
+## API Overview
 
-| Method | Endpoint | Description |
+### Backend (FastAPI)
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | /api/health | Health check |
-| GET | /api/symptoms | Returns all 131 symptom names |
-| POST | /api/diagnose | Input: `{ "symptoms": string[] }`; returns diagnosis results |
-| GET | /api/metrics | Returns accuracy evaluation results |
+| GET | /health | Service health check |
+| GET | /api/symptoms | List all supported symptoms |
+| POST | /api/diagnosis/diagnose | Run diagnosis for selected symptoms |
+| GET | /api/metrics | Return evaluation metrics |
 
-## Database Schema
+### Frontend API Routes (Next.js)
 
-Three core models are used.
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | /api/symptoms | Proxies to backend symptoms service |
+| POST | /api/diagnose | Auth-guarded diagnosis call + persistence |
+| GET | /api/metrics | Proxies backend metrics |
+| ALL | /api/auth/[...all] | Better Auth handlers |
 
-| Model | Fields |
-|---|---|
-| User | `id`, `name`, `email`, `createdAt` |
-| Session | `id`, `userId`, `token`, `expiresAt` |
-| Diagnosis | `id`, `userId`, `symptoms` (array), `topDisease`, `topProbability`, `fullResults` (JSON), `createdAt` |
+## Data Files
 
-## Features
+Place these files under backend/data:
 
-- 131 searchable symptoms with severity weighting
-- Fuzzy membership visualization per symptom (LOW/MEDIUM/HIGH progress bars with Partition of Unity check)
-- 8 syndrome cluster activation chart
-- Fuzzy-Bayesian evidence scores table
-- Interactive 3-layer Bayesian Network graph (React Flow), where edge thickness represents `P(cluster|disease)`
-- Top 5 disease results with probability bars and confidence badges
-- Disease detail panel with descriptions and precautions
-- Diagnosis history per user
-- Accuracy metrics dashboard: Top-1%, Top-5%, F1 score, Fuzzy vs Binary comparison, confusion matrix
+- dataset.csv
+- Symptom-severity.csv
+- symptom_Description.csv
+- symptom_precaution.csv
 
-### Reproducibility Note (Metrics)
+At runtime, cluster configuration is expected in:
 
-On this dataset and current deterministic split (first 96 rows per disease for training, last 24 for testing), it is possible to observe very high Top-5 accuracy (including 100%).
+- cluster_config.json
 
-This is academically reasonable here because:
+Generate it with:
 
-- The dataset is balanced (41 diseases, equal samples per class).
-- The feature space (symptom combinations) is strongly structured and partially overlapping across related diseases.
-- Top-5 is a lenient ranking metric compared with Top-1.
+```bash
+python generate_clusters.py
+```
 
-Interpretation guidance:
+## Troubleshooting
 
-- Treat Top-1 and Macro-F1 as the primary quality indicators.
-- Treat Top-5 as recall-style decision-support coverage, not proof of clinical correctness.
-- Results are reproducible for the same data files and split, but they are not a claim of real-world generalization.
+### 1. Build fails with EPERM on Windows
 
-## Dataset
+If Next.js cannot remove files inside .next, close running dev servers and remove .next manually, then build again.
 
-Place these files inside `backend/data/`.
+### 2. Auth errors or unauthorized diagnosis requests
 
-| File | Details |
-|---|---|
-| dataset.csv | 4920 rows, 41 diseases, 120 rows per disease |
-| Symptom-severity.csv | Symptom severity weights (1-7) |
-| symptom_Description.csv | Disease descriptions |
-| symptom_precaution.csv | Disease precautions |
+- Confirm BETTER_AUTH_SECRET is set in frontend/.env.local.
+- Confirm database migrations completed successfully.
 
-## Important Notes
+### 3. Backend not reachable from frontend
 
-- This is an educational tool and not a substitute for a doctor.
-- All fuzzy and Bayesian mathematics are implemented in Python only, never in TypeScript.
-- Symptom names are never hardcoded in Python; they are loaded from CSV files at runtime.
-- Cluster assignments are loaded from `cluster_config.json`, generated by `generate_clusters.py`.
-- Use `bun add` for frontend package installation. Do not use `npm install`.
+- Ensure backend is running at http://127.0.0.1:8000.
+- Check the diagnosis route dependencies are installed and virtual environment is active.
 
-## Academic Note
+### 4. Empty or broken diagnosis output
 
-This repository is developed as a Soft Computing university assignment focused on probabilistic graphical models and uncertainty-aware medical expert systems.
+- Verify all required CSV files are present in backend/data.
+- Re-run python generate_clusters.py after dataset changes.
 
-The central academic objective is to demonstrate practical integration of:
+### 5. Font download warnings in restricted networks
 
-- Fuzzy Set Theory for vagueness and linguistic uncertainty
-- Bayesian Inference for probabilistic uncertainty and evidence aggregation
+The project is configured to use local/system fallbacks so it can run even when Google Fonts are blocked.
+
+## Roadmap Ideas
+
+- Export diagnosis reports as PDF.
+- Add confidence calibration plots and reliability curves.
+- Add clinician-friendly explanation cards per disease.
+- Add automated integration tests across frontend and backend.
+- Add deployment recipes for Vercel + Render/Fly.io.
+
+## Academic Context
+
+This project was developed as a soft computing assignment to demonstrate practical integration of:
+
+- Fuzzy set modeling for vagueness
+- Bayesian reasoning for uncertainty-aware ranking
+
+It is intended to showcase system design, inference explainability, and end-to-end engineering.
 
 ## Disclaimer
 
-This system is for educational and research demonstration purposes only. It is not a clinical diagnostic system and must not be used as a replacement for professional medical consultation, diagnosis, or treatment.
+MedDiagnose is an educational and research-oriented system. It is not a medical device and must not be used as a substitute for professional clinical diagnosis or treatment advice.
