@@ -26,7 +26,6 @@ It is built for academic and research use.
 - [API Endpoints](#api-endpoints)
 - [Evaluation Metrics](#evaluation-metrics)
 - [Data Files](#data-files)
-- [Troubleshooting](#troubleshooting)
 
 ## Overview
 
@@ -233,21 +232,36 @@ Only active project endpoints are listed below.
 
 ## Evaluation Metrics
 
-Metrics are computed by the backend evaluator and served from `/api/metrics` as percentage values.
+Metrics below are from a real evaluator run on 2026-03-23 using the current project dataset and pipeline (not placeholder values).
 
-Primary values:
+### Scalar metrics (from `/api/metrics`)
 
-- `top1_accuracy`
-- `top5_accuracy`
-- `macro_f1`
-- `binary_top1`
+| Metric | Value |
+|---|---:|
+| split.training_rows | 3936 |
+| split.test_rows | 984 |
+| split.evaluated_rows | 984 |
+| evaluated_rows | 984 |
+| total_test_rows | 984 |
+| skipped_rows | 0 |
+| test_size | 984 |
+| fuzzy_top1 | 95.1219512195122 |
+| top1_accuracy | 95.1219512195122 |
+| top5_accuracy | 100.0 |
+| macro_f1 | 0.9349593495934959 |
+| binary_top1 | 100.0 |
 
-Supporting values:
+### Structured metrics (from `/api/metrics`)
 
-- `evaluated_rows`
-- `skipped_rows`
-- `split.training_rows`
-- `split.test_rows`
+- confusion_matrix: present (41 x 41 class matrix)
+- per_disease_f1: present (41 disease-wise F1 scores)
+
+Real non-perfect per-disease F1 values from this run:
+
+- Heart attack: 0.0
+- Hepatitis D: 0.0
+- Hepatitis E: 0.6666666666666666
+- Tuberculosis: 0.6666666666666666
 
 ## Data Files
 
@@ -261,25 +275,3 @@ Place the following files in `backend/data`:
 Generated file:
 
 - `cluster_config.json` (created via `python generate_clusters.py`)
-
-## Troubleshooting
-
-### Build fails with EPERM on Windows
-
-Close running dev servers, delete `.next`, and build again.
-
-### Unauthorized diagnosis requests
-
-Check `BETTER_AUTH_SECRET` in `frontend/.env.local` and confirm Prisma migration is complete.
-
-### Frontend cannot reach backend
-
-Ensure backend is running on `http://127.0.0.1:8000`.
-
-### Diagnosis output is empty or invalid
-
-Confirm all required CSV files exist in `backend/data` and rerun:
-
-```bash
-python generate_clusters.py
-```
