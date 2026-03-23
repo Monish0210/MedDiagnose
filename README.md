@@ -25,6 +25,7 @@ It is built for academic and research use.
 - [Run Locally](#run-locally)
 - [API Endpoints](#api-endpoints)
 - [Evaluation Metrics](#evaluation-metrics)
+- [How to Understand the Project](#how-to-understand-the-project)
 - [Data Files](#data-files)
 
 ## Overview
@@ -87,20 +88,103 @@ Current dataset scope:
 
 ```text
 MedDiagnose/
-├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   ├── prisma/
-│   └── package.json
+├── .gitignore
+├── README.md
 ├── backend/
-│   ├── routers/
-│   ├── services/
 │   ├── data/
-│   ├── main.py
+│   │   ├── Symptom-severity.csv
+│   │   ├── __init__.py
+│   │   ├── cluster_config.json
+│   │   ├── dataset.csv
+│   │   ├── symptom_Description.csv
+│   │   └── symptom_precaution.csv
 │   ├── generate_clusters.py
-│   └── requirements.txt
-└── README.md
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── diagnosis.py
+│   │   └── metrics.py
+│   └── services/
+│       ├── __init__.py
+│       ├── bayesian_network.py
+│       ├── data_loader.py
+│       ├── evaluator.py
+│       └── fuzzy_engine.py
+└── frontend/
+    ├── .gitignore
+    ├── app/
+    │   ├── (auth)/
+    │   │   ├── login/page.tsx
+    │   │   └── signup/page.tsx
+    │   ├── api/
+    │   │   ├── auth/[...all]/route.ts
+    │   │   ├── diagnose/route.ts
+    │   │   ├── metrics/route.ts
+    │   │   └── symptoms/route.ts
+    │   ├── dashboard/
+    │   │   ├── history/
+    │   │   │   ├── loading.tsx
+    │   │   │   └── page.tsx
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── favicon.ico
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    ├── bun.lock
+    ├── bunfig.toml
+    ├── components/
+    │   ├── disease-detail.tsx
+    │   ├── disease-info-card.tsx
+    │   ├── fuzzy-panel.tsx
+    │   ├── history-list.tsx
+    │   ├── navbar.tsx
+    │   ├── results-panel.tsx
+    │   ├── symptom-selector.tsx
+    │   ├── theme-provider.tsx
+    │   └── ui/
+    │       ├── accordion.tsx
+    │       ├── alert.tsx
+    │       ├── badge.tsx
+    │       ├── button.tsx
+    │       ├── card.tsx
+    │       ├── chart.tsx
+    │       ├── collapsible.tsx
+    │       ├── command.tsx
+    │       ├── dialog.tsx
+    │       ├── input-group.tsx
+    │       ├── input.tsx
+    │       ├── label.tsx
+    │       ├── popover.tsx
+    │       ├── progress.tsx
+    │       ├── separator.tsx
+    │       ├── sheet.tsx
+    │       ├── skeleton.tsx
+    │       ├── table.tsx
+    │       ├── tabs.tsx
+    │       └── textarea.tsx
+    ├── components.json
+    ├── eslint.config.mjs
+    ├── lib/
+    │   ├── auth-client.ts
+    │   ├── auth.ts
+    │   ├── prisma.ts
+    │   ├── types.ts
+    │   └── utils.ts
+    ├── middleware.ts
+    ├── next.config.ts
+    ├── package.json
+    ├── postcss.config.mjs
+    ├── prisma/
+    │   ├── migrations/
+    │   │   ├── 20260316180255_init/migration.sql
+    │   │   ├── 20260317175942_better_auth_schema_alignment/migration.sql
+    │   │   └── migration_lock.toml
+    │   └── schema.prisma
+    ├── prisma.config.ts
+    ├── tailwind.config.ts
+    └── tsconfig.json
 ```
 
 ## Prerequisites
@@ -242,26 +326,32 @@ Metrics below are from a real evaluator run on 2026-03-23 using the current proj
 | split.test_rows | 984 |
 | split.evaluated_rows | 984 |
 | evaluated_rows | 984 |
-| total_test_rows | 984 |
 | skipped_rows | 0 |
-| test_size | 984 |
-| fuzzy_top1 | 95.1219512195122 |
 | top1_accuracy | 95.1219512195122 |
 | top5_accuracy | 100.0 |
 | macro_f1 | 0.9349593495934959 |
 | binary_top1 | 100.0 |
 
-### Structured metrics (from `/api/metrics`)
+## How to Understand the Project
 
-- confusion_matrix: present (41 x 41 class matrix)
-- per_disease_f1: present (41 disease-wise F1 scores)
+If your friend is reading this project for the first time, this path is the fastest way to understand the full logic pipeline:
 
-Real non-perfect per-disease F1 values from this run:
+1. Start from UI flow in `frontend/app/page.tsx` and `frontend/app/dashboard/page.tsx`.
+2. Check frontend diagnosis bridge in `frontend/app/api/diagnose/route.ts`.
+3. Read backend entry and dependency wiring in `backend/main.py`.
+4. Read diagnosis endpoint orchestration in `backend/routers/diagnosis.py`.
+5. Understand data loading and preprocessing in `backend/services/data_loader.py`.
+6. Understand fuzzy scoring in `backend/services/fuzzy_engine.py`.
+7. Understand Bayesian inference in `backend/services/bayesian_network.py`.
+8. Understand metric computation in `backend/services/evaluator.py`.
+9. Run one diagnosis in the UI and cross-check with `/api/diagnosis/diagnose` payload/response.
 
-- Heart attack: 0.0
-- Hepatitis D: 0.0
-- Hepatitis E: 0.6666666666666666
-- Tuberculosis: 0.6666666666666666
+Quick logic summary:
+
+- Input symptoms -> fuzzy memberships
+- fuzzy memberships -> symptom evidence
+- evidence -> Bayesian ranking across diseases
+- ranking -> top results + explanations + saved history
 
 ## Data Files
 
