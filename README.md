@@ -332,27 +332,6 @@ Metrics below are from a real evaluator run on 2026-03-23 using the current proj
 | macro_f1 | 0.9349593495934959 |
 | binary_top1 | 100.0 |
 
-## How to Understand the Project
-
-If your friend is reading this project for the first time, this path is the fastest way to understand the full logic pipeline:
-
-1. Start from UI flow in `frontend/app/page.tsx` and `frontend/app/dashboard/page.tsx`.
-2. Check frontend diagnosis bridge in `frontend/app/api/diagnose/route.ts`.
-3. Read backend entry and dependency wiring in `backend/main.py`.
-4. Read diagnosis endpoint orchestration in `backend/routers/diagnosis.py`.
-5. Understand data loading and preprocessing in `backend/services/data_loader.py`.
-6. Understand fuzzy scoring in `backend/services/fuzzy_engine.py`.
-7. Understand Bayesian inference in `backend/services/bayesian_network.py`.
-8. Understand metric computation in `backend/services/evaluator.py`.
-9. Run one diagnosis in the UI and cross-check with `/api/diagnosis/diagnose` payload/response.
-
-Quick logic summary:
-
-- Input symptoms -> fuzzy memberships
-- fuzzy memberships -> symptom evidence
-- evidence -> Bayesian ranking across diseases
-- ranking -> top results + explanations + saved history
-
 ## Data Files
 
 Place the following files in `backend/data`:
